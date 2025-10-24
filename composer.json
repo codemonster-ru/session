@@ -1,0 +1,50 @@
+{
+    "name": "codemonster-ru/session",
+    "description": "Lightweight session management library for PHP with pluggable handlers",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/codemonster-ru/session",
+    "authors": [
+        {
+            "name": "Kirill Kolesnikov",
+            "email": "admin@codemonster.ru",
+            "homepage": "https://github.com/KolesnikovKirill",
+            "role": "Lead Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Codemonster\\Session\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Codemonster\\Session\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0 || ^12.0"
+    },
+    "scripts": {
+        "test": "phpunit --colors=always --testdox"
+    },
+    "keywords": [
+        "php",
+        "session",
+        "handler",
+        "framework",
+        "codemonster"
+    ],
+    "support": {
+        "issues": "https://github.com/codemonster-ru/session/issues",
+        "source": "https://github.com/codemonster-ru/session"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}
