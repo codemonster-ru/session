@@ -12,17 +12,28 @@ class Store
 
     public function __construct(SessionHandlerInterface $handler, ?string $id = null)
     {
+        $existing = $_COOKIE['SESSION_ID'] ?? null;
+
+        $this->id = $id ?? $existing ?? bin2hex(random_bytes(16));
+
         $this->handler = $handler;
-        $this->id = $id ?? (session_id() ?: bin2hex(random_bytes(16)));
     }
 
     public function start(): void
     {
+        if (!isset($_COOKIE['SESSION_ID']) || $_COOKIE['SESSION_ID'] !== $this->id) {
+            setcookie('SESSION_ID', $this->id, [
+                'expires' => time() + 86400 * 30,
+                'path' => '/',
+                'secure' => false,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        }
+
         $raw = $this->handler->read($this->id);
 
-        $this->data = is_string($raw) && $raw !== ''
-            ? (json_decode($raw, true) ?? [])
-            : [];
+        $this->data = is_string($raw) && $raw !== '' ? (json_decode($raw, true) ?? []) : [];
     }
 
     public function get(string $key, mixed $default = null): mixed
