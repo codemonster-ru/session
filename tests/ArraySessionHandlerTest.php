@@ -19,13 +19,13 @@ class ArraySessionHandlerTest extends TestCase
         $this->assertNull($store->get('token'));
     }
 
-    public function testHandlerStoresJsonEncodedData(): void
+    public function testHandlerStoresRawData(): void
     {
         $handler = new ArraySessionHandler();
-        $handler->write('abc', json_encode(['x' => 1, 'y' => 2]));
-        $json = $handler->read('abc');
+        $payload = '{"x":1,"y":2}';
+        $handler->write('abc', $payload);
+        $stored = $handler->read('abc');
 
-        $this->assertStringContainsString('"x":1', $json);
-        $this->assertStringContainsString('"y":2', $json);
+        $this->assertSame($payload, $stored);
     }
 }

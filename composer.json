@@ -7,7 +7,7 @@
     "authors": [
         {
             "name": "Kirill Kolesnikov",
-            "email": "admin@codemonster.ru",
+            "email": "admin@codemonster.net",
             "homepage": "https://github.com/KolesnikovKirill",
             "role": "Lead Developer"
         }
@@ -23,13 +23,19 @@
         }
     },
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "psr/simple-cache": "^3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0 || ^12.0"
+        "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0 || ^12.0",
+        "phpstan/phpstan": "^1.11",
+        "vimeo/psalm": "^6.0"
     },
     "scripts": {
-        "test": "phpunit --colors=always --testdox"
+        "test": "phpunit --colors=always --testdox",
+        "analyse": "phpstan analyse",
+        "psalm": "psalm --no-cache",
+        "stress": "php scripts/stress.php"
     },
     "keywords": [
         "php",
@@ -41,6 +47,11 @@
     "support": {
         "issues": "https://github.com/codemonster-ru/session/issues",
         "source": "https://github.com/codemonster-ru/session"
+    },
+    "suggest": {
+        "ext-redis": "Required for RedisSessionHandler",
+        "ext-sodium": "Required for session payload encryption",
+        "predis/predis": "Required for PredisSessionHandler"
     },
     "extra": {
         "branch-alias": {

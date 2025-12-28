@@ -7,11 +7,12 @@ on:
 
 jobs:
     tests:
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.os }}
 
         strategy:
             fail-fast: false
             matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
                 php: [8.2, 8.3, 8.4]
 
         steps:
@@ -25,6 +26,15 @@ jobs:
                   coverage: none
                   tools: composer:v2
 
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-${{ matrix.php }}-${{ hashFiles('**/composer.lock') }}
+
             - name: Validate composer.json
               run: composer validate --strict
 
@@ -32,4 +42,233 @@ jobs:
               run: composer update --prefer-dist --no-progress --no-interaction
 
             - name: Run tests
+              run: composer test
+
+    static-analysis:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: none
+                  tools: composer:v2
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-analysis-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Run PHPStan
+              run: composer analyse
+
+            - name: Run Psalm
+              run: composer psalm
+
+    coverage:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: pcov
+                  tools: composer:v2
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-coverage-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Run tests with coverage
+              run: vendor/bin/phpunit --colors=always --coverage-clover build/coverage.xml
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v5
+              with:
+                  files: build/coverage.xml
+
+    redis-integration:
+        runs-on: ubuntu-latest
+        services:
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: none
+                  tools: composer:v2
+                  extensions: redis
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-redis-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Run Redis integration tests
+              env:
+                  REDIS_TESTS: 1
+                  REDIS_HOST: 127.0.0.1
+                  REDIS_PORT: 6379
+              run: composer test
+
+            - name: Run stress test (redis)
+              env:
+                  REDIS_HOST: 127.0.0.1
+                  REDIS_PORT: 6379
+              run: composer stress -- 5000 redis 400 6
+
+    stress-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: none
+                  tools: composer:v2
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-stress-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Stress test (array)
+              run: composer stress -- 20000 array 3400 6
+
+            - name: Stress test (file)
+              run: composer stress -- 10000 file 1700 6
+
+    redis-sentinel-integration:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: none
+                  tools: composer:v2
+                  extensions: redis
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-redis-sentinel-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Start Redis master and Sentinel
+              run: |
+                  docker run -d --name redis-master -p 6380:6379 redis:7-alpine
+                  cat > sentinel.conf <<'EOF'
+                  port 26379
+                  sentinel monitor mymaster 127.0.0.1 6380 1
+                  sentinel down-after-milliseconds mymaster 5000
+                  sentinel failover-timeout mymaster 10000
+                  sentinel parallel-syncs mymaster 1
+                  EOF
+                  docker run -d --name redis-sentinel -p 26379:26379 -v "$PWD/sentinel.conf:/etc/redis/sentinel.conf" redis:7-alpine redis-sentinel /etc/redis/sentinel.conf
+                  sleep 2
+
+            - name: Run Redis Sentinel integration tests
+              env:
+                  REDIS_SENTINEL_TESTS: 1
+                  REDIS_SENTINEL_HOST: 127.0.0.1
+                  REDIS_SENTINEL_PORT: 26379
+                  REDIS_SENTINEL_SERVICE: mymaster
+              run: composer test
+
+    redis-cluster-integration:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 8.2
+                  coverage: none
+                  tools: composer:v2
+                  extensions: redis
+
+            - name: Cache Composer
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.composer/cache
+                      ~/AppData/Local/Composer/cache
+                      ~/Library/Caches/composer
+                  key: composer-${{ runner.os }}-redis-cluster-${{ hashFiles('**/composer.lock') }}
+
+            - name: Install dependencies
+              run: composer update --prefer-dist --no-progress --no-interaction
+
+            - name: Start Redis Cluster
+              run: |
+                  for port in 7000 7001 7002; do
+                    docker run -d --name redis-cluster-$port -p $port:6379 redis:7-alpine redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly no
+                  done
+                  docker run --rm --network host redis:7-alpine redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 --cluster-replicas 0 --cluster-yes
+                  sleep 2
+
+            - name: Run Redis Cluster integration tests
+              env:
+                  REDIS_CLUSTER_TESTS: 1
+                  REDIS_CLUSTER_SEEDS: 127.0.0.1:7000,127.0.0.1:7001,127.0.0.1:7002
               run: composer test
