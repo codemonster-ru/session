@@ -17,14 +17,16 @@ class FileSessionHandlerTest extends TestCase
 
     protected function tearDown(): void
     {
-        array_map('unlink', glob("{$this->path}/sess_*") ?: []);
+        foreach (glob("{$this->path}/sess_*") ?: [] as $file) {
+            @unlink($file);
+        }
 
         @rmdir($this->path);
     }
 
     public function testWriteAndReadSessionFile(): void
     {
-        $id = 'test123';
+        $id = bin2hex(random_bytes(16));
 
         $handler = new FileSessionHandler($this->path);
         $store = new Store($handler, $id);
@@ -70,5 +72,19 @@ class FileSessionHandlerTest extends TestCase
         $handler->gc(10);
 
         $this->assertFileDoesNotExist($file);
+    }
+
+    public function testConstructorThrowsWhenDirectoryCannotBeCreated(): void
+    {
+        $filePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'session_file_' . uniqid();
+        file_put_contents($filePath, 'not a directory');
+
+        try {
+            $this->expectException(\RuntimeException::class);
+
+            new FileSessionHandler($filePath);
+        } finally {
+            @unlink($filePath);
+        }
     }
 }

@@ -6,9 +6,10 @@ use SessionHandlerInterface;
 
 class ArraySessionHandler implements SessionHandlerInterface
 {
+    /** @var array<string, string> */
     protected array $storage = [];
 
-    public function open(string $savePath, string $sessionName): bool
+    public function open(string $path, string $name): bool
     {
         return true;
     }
@@ -20,14 +21,12 @@ class ArraySessionHandler implements SessionHandlerInterface
 
     public function read(string $id): string|false
     {
-        return isset($this->storage[$id])
-            ? json_encode($this->storage[$id], JSON_UNESCAPED_UNICODE)
-            : '';
+        return $this->storage[$id] ?? '';
     }
 
     public function write(string $id, string $data): bool
     {
-        $this->storage[$id] = json_decode($data, true) ?? [];
+        $this->storage[$id] = $data;
 
         return true;
     }
