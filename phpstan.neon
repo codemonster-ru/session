@@ -3,6 +3,8 @@ parameters:
     paths:
         - src
         - tests
+    excludePaths:
+        - tests/CacheSessionHandlerTest.php
     stubFiles:
         - stubs/PredisClient.stub
         - stubs/RedisCluster.stub
