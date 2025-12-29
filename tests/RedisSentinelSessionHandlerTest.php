@@ -69,6 +69,19 @@ if (!class_exists('Redis')) {
     }
 }
 
+function createSentinel(string $host, int $port): RedisSentinel
+{
+    $ref = new ReflectionClass(RedisSentinel::class);
+    $ctor = $ref->getConstructor();
+    if ($ctor === null || $ctor->getNumberOfParameters() === 0) {
+        return new RedisSentinel();
+    }
+
+    $address = sprintf('%s:%d', $host, $port);
+
+    return new RedisSentinel([$address]);
+}
+
 class RedisSentinelSessionHandlerTest extends TestCase
 {
     public function testReadWriteAndDestroy(): void
@@ -84,7 +97,7 @@ class RedisSentinelSessionHandlerTest extends TestCase
         $port = (int) (getenv('REDIS_SENTINEL_PORT') ?: 26379);
         $service = getenv('REDIS_SENTINEL_SERVICE') ?: 'mymaster';
 
-        $sentinel = new RedisSentinel($host, $port);
+        $sentinel = createSentinel($host, $port);
         $handler = new RedisSentinelSessionHandler($sentinel, $service, 'sess_', 0);
 
         $this->assertSame('', $handler->read('abc'));
@@ -109,7 +122,7 @@ class RedisSentinelSessionHandlerTest extends TestCase
         $port = (int) (getenv('REDIS_SENTINEL_PORT') ?: 26379);
         $service = getenv('REDIS_SENTINEL_SERVICE') ?: 'mymaster';
 
-        $sentinel = new RedisSentinel($host, $port);
+        $sentinel = createSentinel($host, $port);
         $handler = new RedisSentinelSessionHandler($sentinel, $service, 'sess_', 60);
 
         $handler->write('abc', 'value');
@@ -134,7 +147,7 @@ class RedisSentinelSessionHandlerTest extends TestCase
         $port = (int) (getenv('REDIS_SENTINEL_PORT') ?: 26379);
         $service = getenv('REDIS_SENTINEL_SERVICE') ?: 'mymaster';
 
-        $sentinel = new RedisSentinel($host, $port);
+        $sentinel = createSentinel($host, $port);
 
         $handler = new class($sentinel, $service, 'sess_', 0, null, null, 1, 0) extends RedisSentinelSessionHandler {
             public function __construct(
