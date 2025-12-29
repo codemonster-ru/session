@@ -54,22 +54,11 @@ class ArrayCache implements CacheInterface
     /** @var array<string, mixed> */
     private array $data = [];
 
-    /**
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
-     */
     public function get($key, $default = null)
     {
         return $this->data[$key] ?? $default;
     }
 
-    /**
-     * @param string $key
-     * @param mixed $value
-     * @param int|\DateInterval|null $ttl
-     * @return bool
-     */
     public function set($key, $value, $ttl = null)
     {
         $this->data[$key] = $value;
@@ -77,10 +66,6 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
-    /**
-     * @param string $key
-     * @return bool
-     */
     public function delete($key)
     {
         unset($this->data[$key]);
@@ -88,9 +73,6 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
-    /**
-     * @return bool
-     */
     public function clear()
     {
         $this->data = [];
@@ -98,11 +80,6 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
-    /**
-     * @param iterable<int, string> $keys
-     * @param mixed $default
-     * @return array<string, mixed>
-     */
     public function getMultiple($keys, $default = null)
     {
         $result = [];
@@ -113,11 +90,6 @@ class ArrayCache implements CacheInterface
         return $result;
     }
 
-    /**
-     * @param iterable<string, mixed> $values
-     * @param int|\DateInterval|null $ttl
-     * @return bool
-     */
     public function setMultiple($values, $ttl = null)
     {
         foreach ($values as $key => $value) {
@@ -127,10 +99,6 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
-    /**
-     * @param iterable<int, string> $keys
-     * @return bool
-     */
     public function deleteMultiple($keys)
     {
         foreach ($keys as $key) {
@@ -140,10 +108,6 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
-    /**
-     * @param string $key
-     * @return bool
-     */
     public function has($key)
     {
         return array_key_exists($key, $this->data);
