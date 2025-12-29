@@ -74,12 +74,24 @@ function createSentinel(string $host, int $port): RedisSentinel
     $ref = new ReflectionClass(RedisSentinel::class);
     $ctor = $ref->getConstructor();
     if ($ctor === null || $ctor->getNumberOfParameters() === 0) {
-        return new RedisSentinel();
+        return $ref->newInstance();
     }
 
-    $address = sprintf('%s:%d', $host, $port);
+    $params = $ctor->getParameters();
+    if ($ctor->getNumberOfParameters() === 1) {
+        $param = $params[0];
+        if ($param->hasType()) {
+            $type = $param->getType();
+            if ($type instanceof ReflectionNamedType && $type->getName() === 'string') {
+                return $ref->newInstanceArgs([$host]);
+            }
+        }
 
-    return new RedisSentinel([$address]);
+        $address = sprintf('%s:%d', $host, $port);
+        return $ref->newInstanceArgs([[$address]]);
+    }
+
+    return $ref->newInstanceArgs([$host, $port]);
 }
 
 class RedisSentinelSessionHandlerTest extends TestCase
