@@ -188,7 +188,7 @@ class RedisSentinelSessionHandlerTest extends TestCase
                         if ($this->tries === 1) {
                             throw new \RedisException('fail');
                         }
-                        return parent::set($key, $value, $options);
+                        return true;
                     }
                 };
                 $ref = new \ReflectionProperty(RedisSentinelSessionHandler::class, 'redis');
