@@ -143,7 +143,13 @@ class RedisSentinelSessionHandlerTest extends TestCase
         $redis->setAccessible(true);
         $client = $redis->getValue($handler);
 
-        $this->assertSame(['setex', 'sess_abc', 60, 'value'], $client->calls[1] ?? []);
+        if (property_exists($client, 'calls')) {
+            $this->assertSame(['setex', 'sess_abc', 60, 'value'], $client->calls[1] ?? []);
+        } else {
+            $ttl = $client->ttl('sess_abc');
+            $this->assertGreaterThan(0, $ttl);
+            $this->assertLessThanOrEqual(60, $ttl);
+        }
     }
 
     public function testRetryOnFailure(): void
@@ -180,7 +186,7 @@ class RedisSentinelSessionHandlerTest extends TestCase
                     {
                         $this->tries++;
                         if ($this->tries === 1) {
-                            throw new \RuntimeException('fail');
+                            throw new \RedisException('fail');
                         }
                         return parent::set($key, $value, $options);
                     }

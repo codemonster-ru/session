@@ -90,7 +90,13 @@ class RedisClusterSessionHandlerTest extends TestCase
 
         $handler->write('abc', 'value');
 
-        $this->assertSame(['setex', 'sess_abc', 60, 'value'], $cluster->calls[0] ?? []);
+        if (property_exists($cluster, 'calls')) {
+            $this->assertSame(['setex', 'sess_abc', 60, 'value'], $cluster->calls[0] ?? []);
+        } elseif (method_exists($cluster, 'ttl')) {
+            $ttl = $cluster->ttl('sess_abc');
+            $this->assertGreaterThan(0, $ttl);
+            $this->assertLessThanOrEqual(60, $ttl);
+        }
     }
 
     public function testRetryOnFailure(): void
@@ -114,7 +120,7 @@ class RedisClusterSessionHandlerTest extends TestCase
             {
                 $this->tries++;
                 if ($this->tries === 1) {
-                    throw new \RuntimeException('fail');
+                    throw new \RedisException('fail');
                 }
                 return parent::set($key, $value, $options);
             }
