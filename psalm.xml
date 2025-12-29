@@ -25,6 +25,11 @@
         <UnusedMethodCall errorLevel="suppress" />
         <UnusedFunctionCall errorLevel="suppress" />
         <MethodSignatureMismatch errorLevel="suppress" />
+        <DuplicateClass>
+            <errorLevel type="suppress">
+                <file name="tests/CacheSessionHandlerTest.php" />
+            </errorLevel>
+        </DuplicateClass>
         <UndefinedThisPropertyFetch>
             <errorLevel type="suppress">
                 <file name="tests/RedisClusterSessionHandlerTest.php" />
